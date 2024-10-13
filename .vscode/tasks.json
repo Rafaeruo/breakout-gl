@@ -5,13 +5,16 @@
             "label": "C/C++: g++ build active file",
             "command": "g++",
             "args": [
-                "-fdiagnostics-color=always",
-                "-g",
-                "${file}",
-                "${workspaceFolder}/deps/glad.c",
-                "-lglfw",
-                "-o",
-                "a.out",
+              "-fdiagnostics-color=always",
+              "-g",
+              "${workspaceFolder}/src/Source.cpp",
+              "${workspaceFolder}/src/shaders/Shader.cpp",
+              "${workspaceFolder}/src/Sprite.cpp",
+              "${workspaceFolder}/src/Renderable.cpp",
+              "${workspaceFolder}/deps/glad.c",
+              "-lglfw",
+              "-o",
+              "a.out"
             ],
             "options": {
                 "cwd": "${workspaceFolder}"
