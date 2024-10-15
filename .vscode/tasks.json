@@ -11,6 +11,8 @@
               "${workspaceFolder}/src/shaders/Shader.cpp",
               "${workspaceFolder}/src/Sprite.cpp",
               "${workspaceFolder}/src/Renderable.cpp",
+              "${workspaceFolder}/src/Collision.cpp",
+              "${workspaceFolder}/src/Texture.cpp",
               "${workspaceFolder}/deps/glad.c",
               "-lglfw",
               "-o",

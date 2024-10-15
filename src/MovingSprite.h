@@ -22,7 +22,7 @@ public:
     // Update the position based on velocity and delta time
     void update(float now) {
         float deltaTime = now - this->lastTime;
-        position += vec3(velocity.x * deltaTime, velocity.y * deltaTime, 0.0f);
+        position += vec3(velocity.x, velocity.y, 0.0f);
         Sprite::update(deltaTime); // Call the base class update if necessary
     }
 

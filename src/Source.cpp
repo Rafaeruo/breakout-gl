@@ -1,37 +1,25 @@
-/* Hello Triangle - código adaptado de https://learnopengl.com/#!Getting-started/Hello-Triangle
- *
- * Adaptado por Rossana Baptista Queiroz
- * para a disciplina de Processamento Gráfico - Unisinos
- * Versão inicial: 7/4/2017
- * Última atualização em 13/08/2024
- *
- */
+// BreakoutGL - Jogo de Breakout em 2D com OpenGL
+// para a disciplina de Processamento Gráfico - Unisinos, 2024/2
 
 #include <iostream>
 #include <string>
 #include <assert.h>
 #include <vector>
-#include<cmath>
+#include <cmath>
 
 using namespace std;
 
-// GLAD
 #include "../deps/include/glad/glad.h"
-
-// GLFW
 #include <GLFW/glfw3.h>
-
-// GLM
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
 
-// STB_IMAGE
-#define STB_IMAGE_IMPLEMENTATION
-#include "../deps/stb_image.h"
-
 #include "Sprite.h"
 #include "MovingSprite.h"
+#include "Collision.h"
+#include "Texture.h"
+#include "Helpers.cpp"
 
 using namespace glm;
 
@@ -43,6 +31,7 @@ int setupShader();
 int loadTexture(string filePath, int &imgWidth, int &imgHeight);
 void checkBoundsCollision(MovingSprite &ball);
 bool checkCollision(Sprite &rect1, Sprite &rect2);
+void changeBallVelocityAfterCollision(MovingSprite &ball, Sprite &paddle);
 
 // Dimensões da janela (pode ser alterado em tempo de execução)
 const GLuint WIDTH = 600, HEIGHT = 800;
@@ -118,36 +107,28 @@ int main()
 	// Compilando e buildando o programa de shader
 	GLuint shaderID = setupShader();
 
-	// Sprite do fundo da cena
-	// Carregando uma textura (recebendo seu ID)
+	glUseProgram(shaderID);
 
-	// Inicializando a sprite do background
 	int imgWidth, imgHeight;
 	int texID = loadTexture("../Texturas/bg.png", imgWidth, imgHeight);
 	Sprite background = Sprite(texID, vec3(WIDTH / 2, HEIGHT / 2, 0.0), vec3(600 * 1.2, 800 * 1.2, 1.0), 0, 1, 1);
 	background.setup();
-
 	
 	texID = loadTexture("../Texturas/estrelaLonge.png", imgWidth, imgHeight);
 	Sprite backgroundLonge = Sprite(texID, vec3(WIDTH / 2, HEIGHT / 2, 0.0), vec3(600 * 1.2, 800 * 1.2, 1.0), 0, 1, 1);
 	backgroundLonge.setup();
 
-	
 	texID = loadTexture("../Texturas/estrelaMedio.png", imgWidth, imgHeight);
 	Sprite backgroundMedio = Sprite(texID, vec3(WIDTH / 2, HEIGHT / 2, 0.0), vec3(600 * 1.2, 800 * 1.2, 1.0), 0, 1, 1);
 	backgroundMedio.setup();
 
-	
 	texID = loadTexture("../Texturas/estrelaPerto.png", imgWidth, imgHeight);
 	Sprite backgroundPerto = Sprite(texID, vec3(WIDTH / 2, HEIGHT / 2, 0.0), vec3(600 * 1.2, 800 * 1.2, 1.0), 0, 1, 1);
 	backgroundPerto.setup();
 
-	// Inicializando a sprite do personagem
 	texID = loadTexture("../Texturas/personagem.png", imgWidth, imgHeight);
 	Sprite character = Sprite(texID, vec3(WIDTH / 2, 150, 0.0), vec3(64, 111, 0), 0, 1, 1);
 	character.setup();
-
-	glUseProgram(shaderID);
 
 	// Enviando a cor desejada (vec4) para o fragment shader
 	// Utilizamos a variáveis do tipo uniform em GLSL para armazenar esse tipo de info
@@ -170,34 +151,35 @@ int main()
 	glEnable(GL_DEPTH_TEST);
 	glDepthFunc(GL_ALWAYS);
 
-
-	// create three layers (y axis) of rectangles
-	// each layer should have 15 recangles of size 600/15
-	const int numLayers = 3;
+	const int numLayers = 4;
 	const int numRectanglesPerLayer = 15;
+	const int rectangleWidth = WIDTH / numRectanglesPerLayer;
+	const int rectangleHeight = 15;
+
 	std::vector<Sprite> rectangles;
 	rectangles.reserve(numLayers * numRectanglesPerLayer);
 
-	texID = loadTexture("../Texturas/degrau1.png", imgWidth, imgHeight);
-
+	int layer = 1;
 	for (size_t i = 0; i < numLayers; i++)
 	{
-		for (size_t j = 0; j < numRectanglesPerLayer; j++)
+		texID = loadTexture("../Texturas/degrau" + std::to_string(layer) + ".png", imgWidth, imgHeight);
+		for (size_t j = 1; j < numRectanglesPerLayer - 1; j++)
 		{
+			if (j == 4 || j == numRectanglesPerLayer - 5) {
+				continue;
+			}
 
-			int rectangleWidth = 40;
-			int rectangleHeight = 15;
-			// Create a rectangle sprite
 			Sprite rectangle = Sprite(
 				texID, 
-				vec3((j * rectangleWidth) + (j + 20), 700.0 + (i * rectangleHeight), 0.0), 
+				vec3((j * rectangleWidth) + (rectangleWidth / 2), 700.0 + (i * rectangleHeight), 0.0), 
 				vec3(rectangleWidth, rectangleHeight, 0.0), 
 				0, 1, 1);
 			rectangle.setup();
 			
-			// Store the rectangle in the array
 			rectangles.push_back(rectangle);
 		}
+
+		layer++;
 	}
 	
 	float ballWidth = 25.0f;  // Width of the sprite
@@ -214,7 +196,7 @@ int main()
 		vec3(ballWidth, ballHeight, 0.0f), 
 		0, 1, 1);
 	ball.setup();
-	ball.setVelocity(vec3(1, 1, 0));
+	ball.setVelocity(generateRandomVelocity(6));
 
 	// Loop da aplicação - "game loop"
 	while (!glfwWindowShouldClose(window))
@@ -243,13 +225,13 @@ int main()
 		backgroundPerto.render(shaderID);
 
 		bool moved = false;
-		if (keys[GLFW_KEY_LEFT] || keys[GLFW_KEY_A]) {
+		if (keys[GLFW_KEY_LEFT]  && !checkLeftBound(character, WIDTH)) {
 			curVel = vel(!previousMovementDirection, curVel);
 			previousMovementDirection = false;
 			moved = true;
 			character.getPosition().x -= curVel;
 		}
-		if (keys[GLFW_KEY_RIGHT] || keys[GLFW_KEY_D]) {
+		else if (keys[GLFW_KEY_RIGHT] && !checkRightBound(character, WIDTH)) {
 			curVel = vel(previousMovementDirection, curVel);
 			previousMovementDirection = true;
 			moved = true;
@@ -280,12 +262,12 @@ int main()
 				ball.setVelocity(vec3(ball.getVelocity().x, -ball.getVelocity().y, 0));
 				rectangle.getPosition().y = -1000.0f;
 			}
-			rectangle.render(shaderID); // Call render on each sprite
+			rectangle.render(shaderID);
 		}
 	
 		if (!collision && checkCollision(character, ball)) {
 			collision = true;
-			ball.setVelocity(vec3(ball.getVelocity().x, -ball.getVelocity().y, 0));
+			changeBallVelocityAfterCollision(ball, character);
 		}
 
 		// Player didnt catch ball
@@ -293,11 +275,7 @@ int main()
 			ball.setVelocity(vec3(0.0f, 0.0f, 0.0f));
 		}
 
-		// TODO stop player from moving
-		// if (checkBoundsCollision(character)) {
-
-		// }
-
+		ball.setAngle(ball.getAngle() + 5);
 		ball.update(now);
 		ball.render(shaderID);
 		checkBoundsCollision(ball);
@@ -382,88 +360,37 @@ int setupShader()
 	return shaderProgram;
 }
 
-int loadTexture(string filePath, int &imgWidth, int &imgHeight)
-{
-	GLuint texID;
-
-	// Gera o identificador da textura na memória
-	glGenTextures(1, &texID);
-	glBindTexture(GL_TEXTURE_2D, texID);
-
-	// Configurando o wrapping da textura
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-
-	// Configurando o filtering de minificação e magnificação da textura
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-
-	// Carregamento da imagem da textura
-	int nrChannels;
-	unsigned char *data = stbi_load(filePath.c_str(), &imgWidth, &imgHeight, &nrChannels, 0);
-
-	if (data)
-	{
-		if (nrChannels == 3) // jpg, bmp
-		{
-			glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, imgWidth, imgHeight, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
-		}
-		else // png
-		{
-			glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, imgWidth, imgHeight, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
-		}
-		glGenerateMipmap(GL_TEXTURE_2D);
-	}
-	else
-	{
-		std::cout << "Failed to load texture" << filePath << std::endl;
-	}
-
-	return texID;
-}
-
-// Check for collision with screen bounds
 void checkBoundsCollision(MovingSprite &ball) {
-    float ballLeft = ball.getPosition().x - ball.getDimensions().x / 2.0f;
-    float ballRight = ball.getPosition().x + ball.getDimensions().x / 2.0f;
-    float ballTop = ball.getPosition().y + ball.getDimensions().y / 2.0f;
-    float ballBottom = ball.getPosition().y - ball.getDimensions().y / 2.0f;
-
-    // Check left and right bounds
-    if (ballLeft < 0.0f) {
+    if (checkLeftBound(ball, WIDTH)) {
         ball.setVelocity(vec3(-ball.getVelocity().x, ball.getVelocity().y, 0)); // Reverse horizontal velocity
         ball.getPosition().x = ball.getDimensions().x / 2.0f; // Reset position to avoid getting stuck
     } 
-    else if (ballRight > WIDTH) {
+    else if (checkRightBound(ball, WIDTH)) {
         ball.setVelocity(vec3(-ball.getVelocity().x, ball.getVelocity().y, 0)); // Reverse horizontal velocity
         ball.getPosition().x = WIDTH - ball.getDimensions().x / 2.0f; // Reset position to avoid getting stuck
     }
 
-    // Check top and bottom bounds
-    if (ballTop > HEIGHT) {
+    if (checkTopBound(ball, HEIGHT)) {
         ball.setVelocity(vec3(ball.getVelocity().x, -ball.getVelocity().y, 0)); // Reverse vertical velocity
         ball.getPosition().y = HEIGHT - ball.getDimensions().y / 2.0f; // Reset position
     } 
-    else if (ballBottom < 0.0f) {
+    else if (checkBottomBound(ball, HEIGHT)) {
         ball.setVelocity(vec3(ball.getVelocity().x, -ball.getVelocity().y, 0)); // Reverse vertical velocity
         ball.getPosition().y = ball.getDimensions().y / 2.0f; // Reset position
     }
 }
 
-// Check for collision between two rectangles
-bool checkCollision(Sprite &rect1, Sprite &rect2) {
-    // Get the positions and dimensions of the rectangles
-    float rect1Left = rect1.getPosition().x - rect1.getDimensions().x / 2.0f;
-    float rect1Right = rect1.getPosition().x + rect1.getDimensions().x / 2.0f;
-    float rect1Top = rect1.getPosition().y + rect1.getDimensions().y / 2.0f;
-    float rect1Bottom = rect1.getPosition().y - rect1.getDimensions().y / 2.0f;
+void changeBallVelocityAfterCollision(MovingSprite &ball, Sprite &character) {
+    float ballCenterX = ball.getPosition().x;
+    float paddleCenterX = character.getPosition().x;
 
-    float rect2Left = rect2.getPosition().x - rect2.getDimensions().x / 2.0f;
-    float rect2Right = rect2.getPosition().x + rect2.getDimensions().x / 2.0f;
-    float rect2Top = rect2.getPosition().y + rect2.getDimensions().y / 2.0f;
-    float rect2Bottom = rect2.getPosition().y - rect2.getDimensions().y / 2.0f;
+    float relativeIntersectX = (paddleCenterX - ballCenterX);
+    //-1 to 1
+    float normalizedIntersectX = relativeIntersectX / (character.getDimensions().x / 2.0f);
 
-    // Check for overlap
-    return (rect1Left < rect2Right && rect1Right > rect2Left && 
-            rect1Top > rect2Bottom && rect1Bottom < rect2Top);
+    float maxBounceAngle = glm::radians(75.0f);
+    float bounceAngle = normalizedIntersectX * maxBounceAngle;
+    float speed = glm::length(ball.getVelocity());
+
+    ball.setVelocity(vec3(speed * sin(bounceAngle), speed * cos(bounceAngle), 0.0f));
 }
