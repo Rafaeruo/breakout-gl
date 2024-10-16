@@ -18,7 +18,6 @@ public:
     virtual ~Renderable();
     virtual void setup();
 
-    // Setters and getters
     vec3& getPosition();
     void setPosition(const vec3& pos);
 
@@ -28,8 +27,7 @@ public:
     float getAngle() const;
     void setAngle(float ang);
 
-    // Pure virtual render method
     virtual void render(GLuint shaderID) = 0;
 };
 
-#endif // RENDERABLE_H
+#endif

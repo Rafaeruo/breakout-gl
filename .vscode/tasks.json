@@ -10,6 +10,7 @@
               "${workspaceFolder}/src/Source.cpp",
               "${workspaceFolder}/src/shaders/Shader.cpp",
               "${workspaceFolder}/src/Sprite.cpp",
+              "${workspaceFolder}/src/MovingSprite.cpp",
               "${workspaceFolder}/src/Renderable.cpp",
               "${workspaceFolder}/src/Collision.cpp",
               "${workspaceFolder}/src/Texture.cpp",

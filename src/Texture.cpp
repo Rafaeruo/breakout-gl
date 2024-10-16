@@ -1,7 +1,6 @@
 #include <iostream>
 #include <string>
 #include "../deps/include/glad/glad.h"
-// STB_IMAGE
 #define STB_IMAGE_IMPLEMENTATION
 #include "../deps/stb_image.h"
 

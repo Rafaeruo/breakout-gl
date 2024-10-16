@@ -1,4 +1,3 @@
-// BallVelocity.h
 #ifndef HELPERS_H
 #define HELPERS_H
 
@@ -9,4 +8,4 @@
 
 glm::vec3 generateRandomVelocity(float speed);
 
-#endif // HELPERS_H
+#endif

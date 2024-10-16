@@ -1,4 +1,5 @@
-#include "Sprite.h" 
+#include "Sprite.h"
+#include "MovingSprite.h" 
 
 bool checkLeftBound(Sprite &ball, GLuint WIDTH) {
     float ballLeft = ball.getPosition().x - ball.getDimensions().x / 2.0f;
@@ -61,4 +62,40 @@ bool checkCollision(Sprite &rect1, Sprite &rect2) {
            checkRightCollision(rect1, rect2) &&
            checkTopCollision(rect1, rect2) &&
            checkBottomCollision(rect1, rect2);
+}
+
+// Funções especializadas para colisões da bola
+void checkBallBoundsCollision(MovingSprite &ball, int WIDTH, int HEIGHT) {
+    if (checkLeftBound(ball, WIDTH)) {
+        ball.setVelocity(vec3(-ball.getVelocity().x, ball.getVelocity().y, 0));
+        ball.getPosition().x = ball.getDimensions().x / 2.0f;
+    } 
+    else if (checkRightBound(ball, WIDTH)) {
+        ball.setVelocity(vec3(-ball.getVelocity().x, ball.getVelocity().y, 0));
+        ball.getPosition().x = WIDTH - ball.getDimensions().x / 2.0f;
+    }
+
+    if (checkTopBound(ball, HEIGHT)) {
+        ball.setVelocity(vec3(ball.getVelocity().x, -ball.getVelocity().y, 0));
+        ball.getPosition().y = HEIGHT - ball.getDimensions().y / 2.0f;
+    } 
+    else if (checkBottomBound(ball, HEIGHT)) {
+        ball.setVelocity(vec3(ball.getVelocity().x, -ball.getVelocity().y, 0));
+        ball.getPosition().y = ball.getDimensions().y / 2.0f;
+    }
+}
+
+void changeBallVelocityAfterCollision(MovingSprite &ball, Sprite &character) {
+    float ballCenterX = ball.getPosition().x;
+    float paddleCenterX = character.getPosition().x;
+
+    float relativeIntersectX = (paddleCenterX - ballCenterX);
+    //-1 to 1
+    float normalizedIntersectX = relativeIntersectX / (character.getDimensions().x / 2.0f);
+
+    float maxBounceAngle = glm::radians(75.0f);
+    float bounceAngle = normalizedIntersectX * maxBounceAngle;
+    float speed = glm::length(ball.getVelocity());
+
+    ball.setVelocity(vec3(speed * sin(bounceAngle), speed * cos(bounceAngle), 0.0f));
 }
