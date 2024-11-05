@@ -28,10 +28,8 @@ O jogo possui apenas um round e termina quando o jogador perder (não rebater a 
 
 Em caso de vitória ou derrota, é necessário reiniciar o jogo para jogar novamente.
 
-# Créditos e vídeo apresentação
+![BreakoutGL gameplay screenshot](screenshot.png)
+
+# Autores
 
 Bruno Hoffmeister Groehs, Rafael Scholz Griebler e Théo Rossetto
-
-https://www.youtube.com/watch?v=FsSEin0YJ5c
-
-![BreakoutGL gameplay screenshot](screenshot.png)
